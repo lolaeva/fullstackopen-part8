@@ -141,9 +141,13 @@ const resolvers = {
     addBook: (root, args) => {
       const book = { ...args, id: uuid() }
       books = books.concat(book)
-      if (!authors.includes(book.author)) {
+      if (!authors.find(a => a.name == book.author)) {
         const author = { name: book.author, id: uuid() }
         authors = authors.concat(author)
+      } else {
+        const currentAuthor = authors.find((a) => a.name == book.author)
+        currentAuthor.bookCount += 1
+        authors = [...authors.filter((a) => a.name != book.author), currentAuthor]
       }
       return book
     },
