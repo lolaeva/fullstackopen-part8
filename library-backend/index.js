@@ -18,7 +18,7 @@ mongoose
 const typeDefs = gql`
   type Book {
     title: String!
-    author: String!
+    author: Author!
     published: Int!
     id: ID!
     genres: [String!]!
@@ -28,6 +28,7 @@ const typeDefs = gql`
     name: String!
     id: ID!
     born: Int
+    books: [Book!]!
     bookCount: Int!
   }
 
@@ -53,52 +54,94 @@ const resolvers = {
       return Author.collection.countDocuments()
     },
     allBooks: async (root, args) => {
-      let resultBooks = Book.find({})
-      if (args.author) resultBooks = Book.find({ author: args.author })
-      if (args.genre) resultBooks = Book.find({ genres: args.genres })
-      return resultBooks
+      if (args.author) {
+        const foundAuthor = await Author.findOne({ name: args.author })
+        if (foundAuthor) {
+          if (args.genre) {
+            return await Book.find({
+              author: foundAuthor.id,
+              genres: { $in: [args.genre] },
+            }).populate('author')
+          }
+          return await Book.find({ author: foundAuthor.id }).populate('author')
+        }
+        return null
+      }
+
+      if (args.genre) {
+        return Book.find({ genres: { $in: [args.genre] } }).populate('author')
+      }
+
+      return Book.find({}).populate('author')
     },
-    allAuthors: async (root, args) => Author.find({}),
+    allAuthors: async (root, args) => {
+      return await Author.find({}).populate('books')
+    },
   },
   Author: {
-    bookCount: (root) => {
-      const books = Book.find({ name: root.name })
-      return books
+    bookCount: async (root, args) => {
+      return await root.books.length
     },
   },
   Mutation: {
     addBook: async (root, args) => {
-      const book = new Book({ ...args })
-      const currentAuthor = await Author.findOne({ name: book.author })
-      try {
-        if (!currentAuthor) {
-          const author = new Author({ name: book.author })
-          await author.save()
-        } else {
-          currentAuthor.bookCount += 1
-          await currentAuthor.save()
+      const existingBook = await Book.findOne({ title: args.title })
+      if (existingBook) {
+        throw new UserInputError('Book already exists', {
+          invalidArgs: args.title,
+        })
+      }
+
+      let authorId = null
+      let bookAuthor = null
+
+      const currentAuthor = await Author.findOne({ name: args.author })
+
+      // check for existing author
+      if (!currentAuthor) {
+        try {
+          // add new author
+          bookAuthor = new Author({ name: args.author })
+          await bookAuthor.save()
+        } catch (error) {
+          throw new UserInputError(error.message, {
+            invalidArgs: args,
+          })
         }
+      } else {
+        // find existing author
+        bookAuthor = await Author.findById(currentAuthor._id)
+      }
+      // add new book
+      const book = new Book({
+        ...args,
+        author: bookAuthor,
+      })
+
+      // save book and add it to author
+      try {
         await book.save()
+        await bookAuthor.updateOne({ $push: { books: book } })
       } catch (error) {
         throw new UserInputError(error.message, {
-          invalidArgs: args,
+          invalid: args,
         })
       }
 
       return book
     },
     editAuthor: async (root, args) => {
-      const author = Author.findOne({ name: args.name })
+      const author = await Author.findOne({ name: args.name })
       if (author) {
         try {
           author.born = args.setBornTo
           await author.save()
+          return author
         } catch (error) {
           throw new UserInputError(error.message, {
             invalidArgs: args,
           })
         }
-        return author
       } else {
         return null
       }

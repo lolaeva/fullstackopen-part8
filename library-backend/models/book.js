@@ -10,15 +10,10 @@ const schema = new mongoose.Schema({
     type: Number,
     minlength: 1,
   },
+  genres: [{ type: String }],
   author: {
-    type: String,
-    required: true,
-    minlength: 1,
-  },
-  genres: {
-    type: Array,
-    required: true,
-    minlength: 1,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Author',
   },
 })
 
