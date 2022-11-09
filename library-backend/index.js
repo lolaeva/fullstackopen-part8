@@ -5,6 +5,7 @@ const config = require('./utils/config')
 
 const Book = require('./models/book')
 const Author = require('./models/author')
+const User = require('./models/user')
 
 mongoose
   .connect(config.MONGODB_URI)
@@ -16,6 +17,16 @@ mongoose
   })
 
 const typeDefs = gql`
+  type User {
+    username: String!
+    favouriteGenre: String!
+    id: ID!
+  }
+
+  type Token {
+    value: String!
+  }
+
   type Book {
     title: String!
     author: Author!
@@ -33,6 +44,7 @@ const typeDefs = gql`
   }
 
   type Query {
+    me: User
     bookCount: Int!
     authorCount: Int!
     allBooks(author: String, genre: String): [Book!]!
@@ -40,6 +52,8 @@ const typeDefs = gql`
   }
 
   type Mutation {
+    createUser(username: String!, favouriteGenre: String!): User
+    login(username: String!, password: String!): Token
     addBook(title: String!, author: String!, published: Int!, genres: [String!]!): Book
     editAuthor(name: String!, setBornTo: Int!): Author
   }
@@ -47,6 +61,9 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
+    me: async (root, args, context) => {
+      return context.currentUser
+    },
     bookCount: async (root, args) => {
       return Book.collection.countDocuments()
     },
@@ -84,6 +101,29 @@ const resolvers = {
     },
   },
   Mutation: {
+    login: async (root, args) => {
+      const user = User.findOne({ username: args.username })
+
+      if (!user || args.password != 'secret') {
+        throw new UserInputError('invalid credentials')
+      }
+
+      const userForToken = {
+        username: user.username,
+        id: user._id,
+      }
+
+      return { value: jwt.sign(userForToken, config.JWT_SECRET) }
+    },
+    createUser: async (root, args) => {
+      const user = new User({ username: args.username })
+
+      return user.save().catch((error) => {
+        throw new UserInputError(error.message, {
+          invalidArgs: args,
+        })
+      })
+    },
     addBook: async (root, args) => {
       const existingBook = await Book.findOne({ title: args.title })
       if (existingBook) {
