@@ -1,17 +1,8 @@
-import { useEffect } from 'react'
-import { useQuery } from '@apollo/client'
-import { ALL_BOOKS, ME } from '../queries'
 import BooksTable from './BooksTable'
 
-const Recommended = (props) => {
-  const result = useQuery(ALL_BOOKS)
-  const currentUser = useQuery(ME)
+const Recommended = ({show, result, currentUser}) => {
 
-  useEffect(() => {
-    console.log('currentUser', currentUser.data)
-  }, [currentUser])
-
-  if (!props.show) {
+  if (!show) {
     return null
   }
 

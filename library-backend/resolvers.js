@@ -1,6 +1,9 @@
 const { UserInputError, AuthenticationError } = require('apollo-server')
 const Book = require('./models/book')
 const Author = require('./models/author')
+const User = require('./models/user')
+
+const jwt = require('jsonwebtoken')
 const config = require('./utils/config')
 
 const { PubSub } = require('graphql-subscriptions')

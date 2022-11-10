@@ -1,19 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useQuery } from '@apollo/client'
-import { ALL_BOOKS, ME } from '../queries'
+import { useState } from 'react'
 import Filters from './Filters'
 import BooksTable from './BooksTable'
 
-const Books = (props) => {
+const Books = ({show, result}) => {
   const [filter, setFilter] = useState('')
-  const result = useQuery(ALL_BOOKS)
-  const currentUser = useQuery(ME)
 
-  useEffect(() => {
-    console.log("currentUser", currentUser.data);
-  }, [currentUser])
-
-  if (!props.show) {
+  if (!show) {
     return null
   }
 
