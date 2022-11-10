@@ -1,9 +1,10 @@
 import { useState } from 'react'
 
+import Notify from './components/Notify'
 import Authors from './components/Authors'
 import Books from './components/Books'
+import Recommended from './components/Recommended'
 import NewBook from './components/NewBook'
-import Notify from './components/Notify'
 import LoginForm from './components/LoginForm'
 
 const App = () => {
@@ -32,6 +33,7 @@ const App = () => {
         {token ? (
           <>
             <button onClick={() => setPage('add')}>add book</button>
+            <button onClick={() => setPage('recommended')}>recommended</button>
             <button onClick={logout}>logout</button>
           </>
         ) : (
@@ -53,7 +55,7 @@ const App = () => {
       <Authors show={page === 'authors'} />
 
       <Books show={page === 'books'} />
-
+      <Recommended show={page === 'recommended'}/>
       <NewBook show={page === 'add'} setError={showMessage} />
     </div>
   )

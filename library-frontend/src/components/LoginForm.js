@@ -23,7 +23,9 @@ const LoginForm = ({ show, setError, setToken, loginPage }) => {
   const submit = (event) => {
     event.preventDefault()
     login({ variables: { username, password } })
-    loginPage()
+    .then((res) => {
+      if(res.data) loginPage()
+    })
   }
 
   if (!show) {

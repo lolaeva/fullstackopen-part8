@@ -61,7 +61,7 @@ const typeDefs = gql`
 
 const resolvers = {
   Query: {
-    me: async (root, args, context) => {
+    me: (root, args, context) => {
       return context.currentUser
     },
     bookCount: async (root, args) => {
@@ -102,7 +102,7 @@ const resolvers = {
   },
   Mutation: {
     login: async (root, args) => {
-      const user = User.findOne({ username: args.username })
+      const user = await User.findOne({ username: args.username })
 
       if (!user || args.password != 'secret') {
         throw new UserInputError('invalid credentials')
@@ -116,8 +116,7 @@ const resolvers = {
       return { value: jwt.sign(userForToken, config.JWT_SECRET) }
     },
     createUser: async (root, args) => {
-      const user = new User({ username: args.username })
-
+      const user = new User({ username: args.username, favouriteGenre: args.favouriteGenre })
       return user.save().catch((error) => {
         throw new UserInputError(error.message, {
           invalidArgs: args,
@@ -192,6 +191,16 @@ const resolvers = {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
+  context: async ({ req }) => {
+    const auth = req ? req.headers.authorization : null
+    if (auth && auth.toLowerCase().startsWith('bearer ')) {
+      const decodedToken = jwt.verify(
+        auth.substring(7), config.JWT_SECRET
+      )
+      const currentUser = await User.findById(decodedToken.id)
+      return { currentUser }
+    }
+  }
 })
 
 server.listen().then(({ url }) => {
